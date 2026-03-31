@@ -28,7 +28,7 @@ function AuthPage() {
   const [registerForm, setRegisterForm] = useState({
     fullName: '',
     email: '',
-    location: 'Bengaluru',
+    location: 'London',
     password: '',
   });
 
@@ -39,13 +39,17 @@ function AuthPage() {
   const handleLogin = async () => {
     const result = await login(loginForm);
     setNotice(result.message || 'Signed in successfully.');
-    navigate('/dashboard');
+    if (result.ok) {
+      navigate('/dashboard');
+    }
   };
 
   const handleRegister = async () => {
     const result = await register(registerForm);
     setNotice(result.message || 'Account created successfully.');
-    navigate('/dashboard');
+    if (result.ok) {
+      navigate('/dashboard');
+    }
   };
 
   return (
@@ -72,9 +76,8 @@ function AuthPage() {
                     </Typography>
                   </Box>
                   <Stack spacing={1.5}>
-                    <Typography sx={{ opacity: 0.82 }}>Demo sign-in works even if the backend is offline.</Typography>
-                    <Typography sx={{ opacity: 0.82 }}>Email: `aarav@rentitcircle.com`</Typography>
-                    <Typography sx={{ opacity: 0.82 }}>Password: `demo123`</Typography>
+                    <Typography sx={{ opacity: 0.82 }}>Connect this page to the MAMP API and MySQL database.</Typography>
+                    <Typography sx={{ opacity: 0.82 }}>Use a real registered account from your local database.</Typography>
                   </Stack>
                 </Stack>
               </CardContent>

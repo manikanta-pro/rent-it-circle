@@ -14,6 +14,7 @@ import {
 import AddRounded from '@mui/icons-material/AddRounded';
 import { Link } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
+import { formatGBP } from '../utils/currency';
 
 function DashboardPage() {
   const { myListings, myRentals, platformStats, updateRentalStatus } = useAppData();
@@ -86,7 +87,7 @@ function DashboardPage() {
                             <Typography color="text.secondary">{item.location}</Typography>
                           </Box>
                           <Typography color="primary.main" fontWeight={800}>
-                            Rs. {item.dailyRate.toLocaleString()}
+                            {formatGBP(item.dailyRate)}
                           </Typography>
                         </Stack>
                       </Box>

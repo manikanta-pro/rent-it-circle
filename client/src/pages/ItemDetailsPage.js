@@ -22,6 +22,7 @@ import WorkspacePremiumRounded from '@mui/icons-material/WorkspacePremiumRounded
 import { Navigate, useParams } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
+import { formatGBP } from '../utils/currency';
 
 function ItemDetailsPage() {
   const { itemId } = useParams();
@@ -96,8 +97,8 @@ function ItemDetailsPage() {
 
                   <Grid container spacing={2}>
                     {[
-                      ['Daily rate', `Rs. ${item.dailyRate.toLocaleString()}`],
-                      ['Security deposit', `Rs. ${item.depositAmount.toLocaleString()}`],
+                      ['Daily rate', formatGBP(item.dailyRate)],
+                      ['Security deposit', formatGBP(item.depositAmount)],
                       ['Location', item.location],
                       ['Views', `${item.viewsCount}+ interest signals`],
                     ].map(([label, value]) => (
@@ -159,11 +160,11 @@ function ItemDetailsPage() {
                     </Stack>
                     <Stack direction="row" justifyContent="space-between">
                       <Typography color="text.secondary">Rental total</Typography>
-                      <Typography>Rs. {total.toLocaleString()}</Typography>
+                      <Typography>{formatGBP(total)}</Typography>
                     </Stack>
                     <Stack direction="row" justifyContent="space-between">
                       <Typography color="text.secondary">Refundable deposit</Typography>
-                      <Typography>Rs. {item.depositAmount.toLocaleString()}</Typography>
+                      <Typography>{formatGBP(item.depositAmount)}</Typography>
                     </Stack>
                   </Stack>
                   <Button variant="contained" size="large" onClick={handleSubmit}>

@@ -18,18 +18,20 @@ import AddRounded from '@mui/icons-material/AddRounded';
 import DashboardRounded from '@mui/icons-material/DashboardRounded';
 import StorefrontRounded from '@mui/icons-material/StorefrontRounded';
 import LogoutRounded from '@mui/icons-material/LogoutRounded';
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const navItems = [
-  { label: 'Discover', to: '/marketplace' },
-  { label: 'How it works', to: '/#how-it-works' },
-  { label: 'Why local', to: '/#why-local' },
+  { label: 'Discover', to: '/marketplace', type: 'route' },
+  { label: 'How it works', targetId: 'how-it-works', type: 'section' },
+  { label: 'Why local', targetId: 'why-local', type: 'section' },
 ];
 
 function MainLayout() {
   const [open, setOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const navLinkSx = ({ isActive }) => ({
     color: isActive ? 'text.primary' : 'text.secondary',
@@ -39,6 +41,28 @@ function MainLayout() {
     borderRadius: 999,
     bgcolor: isActive ? 'rgba(15, 118, 110, 0.08)' : 'transparent',
   });
+
+  const scrollToSection = (targetId) => {
+    const element = document.getElementById(targetId);
+
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleSectionNavigation = (targetId, closeDrawer = false) => {
+    if (closeDrawer) {
+      setOpen(false);
+    }
+
+    if (location.pathname !== '/') {
+      navigate('/');
+      window.setTimeout(() => scrollToSection(targetId), 50);
+      return;
+    }
+
+    scrollToSection(targetId);
+  };
 
   return (
     <Box>
@@ -71,11 +95,33 @@ function MainLayout() {
               spacing={1}
               sx={{ display: { xs: 'none', md: 'flex' }, ml: 4 }}
             >
-              {navItems.map((item) => (
-                <Box component={NavLink} key={item.label} to={item.to} sx={navLinkSx}>
-                  {item.label}
-                </Box>
-              ))}
+              {navItems.map((item) =>
+                item.type === 'route' ? (
+                  <Box component={NavLink} key={item.label} to={item.to} sx={navLinkSx}>
+                    {item.label}
+                  </Box>
+                ) : (
+                  <Box
+                    key={item.label}
+                    component="button"
+                    type="button"
+                    onClick={() => handleSectionNavigation(item.targetId)}
+                    sx={{
+                      color: 'text.secondary',
+                      fontWeight: 700,
+                      px: 1,
+                      py: 0.75,
+                      borderRadius: 999,
+                      bgcolor: 'transparent',
+                      border: 0,
+                      cursor: 'pointer',
+                      font: 'inherit',
+                    }}
+                  >
+                    {item.label}
+                  </Box>
+                )
+              )}
             </Stack>
 
             <Box sx={{ flexGrow: 1 }} />
@@ -121,11 +167,17 @@ function MainLayout() {
       <Drawer anchor="right" open={open} onClose={() => setOpen(false)}>
         <Box sx={{ width: 280, p: 3 }}>
           <Stack spacing={2}>
-            {navItems.map((item) => (
-              <Button key={item.label} component={Link} to={item.to} onClick={() => setOpen(false)}>
-                {item.label}
-              </Button>
-            ))}
+            {navItems.map((item) =>
+              item.type === 'route' ? (
+                <Button key={item.label} component={Link} to={item.to} onClick={() => setOpen(false)}>
+                  {item.label}
+                </Button>
+              ) : (
+                <Button key={item.label} onClick={() => handleSectionNavigation(item.targetId, true)}>
+                  {item.label}
+                </Button>
+              )
+            )}
             <Divider />
             {isAuthenticated ? (
               <>

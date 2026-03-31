@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
@@ -21,17 +21,27 @@ import FavoriteBorderRounded from '@mui/icons-material/FavoriteBorderRounded';
 import PlaceRounded from '@mui/icons-material/PlaceRounded';
 import StarRounded from '@mui/icons-material/StarRounded';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { categories, cityHighlights } from '../data/mockData';
 import { useAppData } from '../context/AppDataContext';
+import { formatGBP } from '../utils/currency';
 
 function MarketplacePage() {
   const { items, favorites, toggleFavorite } = useAppData();
+  const [searchParams] = useSearchParams();
+  const locationParam = searchParams.get('location');
   const [filters, setFilters] = useState({
     search: '',
     category: 'All',
-    location: 'All cities',
+    location: locationParam && cityHighlights.includes(locationParam) ? locationParam : 'All cities',
   });
+
+  useEffect(() => {
+    setFilters((prev) => ({
+      ...prev,
+      location: locationParam && cityHighlights.includes(locationParam) ? locationParam : 'All cities',
+    }));
+  }, [locationParam]);
 
   const filteredItems = useMemo(
     () =>
@@ -171,10 +181,10 @@ function MarketplacePage() {
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                       <Box>
                         <Typography variant="h5" color="primary.main">
-                          Rs. {item.dailyRate.toLocaleString()}
+                          {formatGBP(item.dailyRate)}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          deposit Rs. {item.depositAmount.toLocaleString()}
+                          deposit {formatGBP(item.depositAmount)}
                         </Typography>
                       </Box>
                       <Button

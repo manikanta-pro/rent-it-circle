@@ -8,12 +8,12 @@ export const categories = [
 ];
 
 export const cityHighlights = [
-  'Bengaluru',
-  'Hyderabad',
-  'Chennai',
-  'Pune',
-  'Mumbai',
-  'Delhi NCR',
+  'London',
+  'Manchester',
+  'Birmingham',
+  'Bristol',
+  'Leeds',
+  'Edinburgh',
 ];
 
 export const initialItems = [
@@ -26,7 +26,7 @@ export const initialItems = [
     condition: 'like-new',
     dailyRate: 3200,
     depositAmount: 15000,
-    location: 'Bengaluru',
+    location: 'London',
     image:
       'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=1200&q=80',
     gallery: [
@@ -40,7 +40,7 @@ export const initialItems = [
     ownerRating: 4.9,
     ownerReviewCount: 89,
     ownerVerified: true,
-    ownerLocation: 'Indiranagar, Bengaluru',
+    ownerLocation: 'Shoreditch, London',
     leadTime: 'Pickup in 45 mins',
     availabilityStatus: 'available',
     viewsCount: 412,
@@ -54,7 +54,7 @@ export const initialItems = [
     condition: 'good',
     dailyRate: 900,
     depositAmount: 5000,
-    location: 'Hyderabad',
+    location: 'Manchester',
     image:
       'https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=1200&q=80',
     gallery: [
@@ -68,7 +68,7 @@ export const initialItems = [
     ownerRating: 4.7,
     ownerReviewCount: 54,
     ownerVerified: true,
-    ownerLocation: 'Madhapur, Hyderabad',
+    ownerLocation: 'Northern Quarter, Manchester',
     leadTime: 'Pickup today',
     availabilityStatus: 'available',
     viewsCount: 276,
@@ -82,7 +82,7 @@ export const initialItems = [
     condition: 'like-new',
     dailyRate: 2500,
     depositAmount: 10000,
-    location: 'Mumbai',
+    location: 'Bristol',
     image:
       'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=1200&q=80',
     gallery: [
@@ -96,7 +96,7 @@ export const initialItems = [
     ownerRating: 4.8,
     ownerReviewCount: 67,
     ownerVerified: true,
-    ownerLocation: 'Bandra, Mumbai',
+    ownerLocation: 'Clifton, Bristol',
     leadTime: 'Delivery available',
     availabilityStatus: 'available',
     viewsCount: 355,
@@ -110,7 +110,7 @@ export const initialItems = [
     condition: 'good',
     dailyRate: 1100,
     depositAmount: 4200,
-    location: 'Pune',
+    location: 'Edinburgh',
     image:
       'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=1200&q=80',
     gallery: [
@@ -124,7 +124,7 @@ export const initialItems = [
     ownerRating: 4.6,
     ownerReviewCount: 31,
     ownerVerified: false,
-    ownerLocation: 'Baner, Pune',
+    ownerLocation: 'Leith, Edinburgh',
     leadTime: 'Reserve 1 day ahead',
     availabilityStatus: 'available',
     viewsCount: 198,

@@ -23,7 +23,7 @@ const initialForm = {
   condition: 'like-new',
   dailyRate: 1500,
   depositAmount: 5000,
-  location: 'Bengaluru',
+  location: 'London',
   image:
     'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
   gallery: [

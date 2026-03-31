@@ -15,9 +15,10 @@ import {
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import VerifiedRounded from '@mui/icons-material/VerifiedRounded';
 import PlaceRounded from '@mui/icons-material/PlaceRounded';
-import BoltRounded from '@mui/icons-material/BoltRounded';
+import TravelExploreRounded from '@mui/icons-material/TravelExploreRounded';
 import { Link } from 'react-router-dom';
-import { categories, initialItems, testimonials, trustSignals } from '../data/mockData';
+import { cityHighlights, initialItems, testimonials, trustSignals } from '../data/mockData';
+import { formatGBP } from '../utils/currency';
 
 function HomePage() {
   return (
@@ -122,7 +123,7 @@ function HomePage() {
                             </Typography>
                           </Stack>
                           <Typography variant="body2" sx={{ mt: 1, color: 'primary.main', fontWeight: 700 }}>
-                            Rs. {item.dailyRate.toLocaleString()} / day
+                            {formatGBP(item.dailyRate)} / day
                           </Typography>
                         </Box>
                       </Stack>
@@ -131,7 +132,7 @@ function HomePage() {
                 </CardContent>
               </Card>
 
-              <Card id="why-local" sx={{ background: '#0f172a', color: 'common.white' }}>
+              <Card id="why-local" sx={{ background: '#0f172a', color: 'common.white', scrollMarginTop: 120 }}>
                 <CardContent sx={{ p: 3.5 }}>
                   <Stack spacing={2}>
                     <Stack direction="row" spacing={1.5} alignItems="center">
@@ -157,7 +158,7 @@ function HomePage() {
         </Grid>
       </Container>
 
-      <Container maxWidth="xl" sx={{ py: { xs: 7, md: 10 } }} id="how-it-works">
+      <Container maxWidth="xl" sx={{ py: { xs: 7, md: 10 }, scrollMarginTop: 120 }} id="how-it-works">
         <Grid container spacing={3}>
           {[
             ['Discover nearby', 'Browse by city, category and availability to find equipment ready for pickup.'],
@@ -183,9 +184,9 @@ function HomePage() {
         <Container maxWidth="xl">
           <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={2} mb={4}>
             <Box>
-              <Typography variant="h3">Browse high-value categories</Typography>
+              <Typography variant="h3">Search by location</Typography>
               <Typography color="text.secondary" sx={{ mt: 1 }}>
-                Structured around the kinds of items people need briefly but buy reluctantly.
+                Start with the city you need and jump straight into nearby listings with faster pickup windows.
               </Typography>
             </Box>
             <Button component={Link} to="/marketplace" variant="outlined" endIcon={<ArrowForwardRounded />}>
@@ -194,8 +195,8 @@ function HomePage() {
           </Stack>
 
           <Grid container spacing={3}>
-            {categories.map((category, index) => (
-              <Grid item xs={12} sm={6} md={4} key={category}>
+            {cityHighlights.map((city, index) => (
+              <Grid item xs={12} sm={6} md={4} key={city}>
                 <Card
                   sx={{
                     height: '100%',
@@ -208,12 +209,20 @@ function HomePage() {
                   <CardContent sx={{ p: 3.5 }}>
                     <Stack spacing={2}>
                       <Avatar sx={{ bgcolor: index % 2 === 0 ? 'primary.main' : 'secondary.main' }}>
-                        <BoltRounded />
+                        <TravelExploreRounded />
                       </Avatar>
-                      <Typography variant="h5">{category}</Typography>
+                      <Typography variant="h5">{city}</Typography>
                       <Typography color="text.secondary">
-                        Premium local listings, clearer pricing, and better host context than generic classifieds.
+                        Explore gear available around {city} with trusted hosts, transparent deposits and local pickup options.
                       </Typography>
+                      <Button
+                        component={Link}
+                        to={`/marketplace?location=${encodeURIComponent(city)}`}
+                        variant="text"
+                        sx={{ alignSelf: 'flex-start', px: 0 }}
+                      >
+                        Search {city}
+                      </Button>
                     </Stack>
                   </CardContent>
                 </Card>

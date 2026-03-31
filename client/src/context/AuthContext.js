@@ -5,6 +5,12 @@ const AuthContext = createContext(null);
 const USER_KEY = 'rentitcircle-user';
 const TOKEN_KEY = 'rentitcircle-token';
 
+const normalizeUser = (user) => ({
+  ...user,
+  memberSince: user.memberSince || (user.joinDate ? new Date(user.joinDate).getFullYear().toString() : '2026'),
+  responseRate: user.responseRate || '95%',
+});
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
 
@@ -15,70 +21,77 @@ export const useAuth = () => {
   return context;
 };
 
-const demoUser = {
-  id: 'demo-user',
-  fullName: 'Aarav Mehta',
-  email: 'aarav@rentitcircle.com',
-  location: 'Bengaluru',
-  rating: 4.9,
-  totalRatings: 128,
-  isVerified: true,
-  memberSince: '2023',
-  responseRate: '98%',
-};
-
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem(TOKEN_KEY) || '');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem(USER_KEY);
+    const bootstrapAuth = async () => {
+      const storedUser = localStorage.getItem(USER_KEY);
 
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+      if (!token) {
+        if (storedUser) {
+          localStorage.removeItem(USER_KEY);
+        }
+        setLoading(false);
+        return;
+      }
 
-    if (token) {
       api.defaults.headers.common.Authorization = `Bearer ${token}`;
-    }
 
-    setLoading(false);
+      try {
+        const response = await api.get('/users/profile');
+        const nextUser = normalizeUser({
+          id: response.data.profile.id,
+          email: response.data.profile.email,
+          fullName: response.data.profile.full_name,
+          location: response.data.profile.location,
+          avatarUrl: response.data.profile.avatar_url,
+          rating: Number(response.data.profile.rating || 0),
+          totalRatings: Number(response.data.profile.total_ratings || 0),
+          isVerified: Boolean(response.data.profile.is_verified),
+          joinDate: response.data.profile.join_date,
+        });
+        setUser(nextUser);
+        localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+      } catch (error) {
+        setUser(null);
+        setToken('');
+        localStorage.removeItem(USER_KEY);
+        localStorage.removeItem(TOKEN_KEY);
+        delete api.defaults.headers.common.Authorization;
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    bootstrapAuth();
   }, [token]);
 
-  const persistSession = (nextUser, nextToken = 'demo-session-token') => {
-    setUser(nextUser);
+  const persistSession = (nextUser, nextToken) => {
+    const normalizedUser = normalizeUser(nextUser);
+    setUser(normalizedUser);
     setToken(nextToken);
-    localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+    localStorage.setItem(USER_KEY, JSON.stringify(normalizedUser));
     localStorage.setItem(TOKEN_KEY, nextToken);
     api.defaults.headers.common.Authorization = `Bearer ${nextToken}`;
   };
 
+  const getErrorMessage = (error, fallback) =>
+    error?.response?.data?.error ||
+    error?.response?.data?.errors?.[0]?.msg ||
+    fallback;
+
   const login = async ({ email, password }) => {
     try {
       const response = await api.post('/auth/login', { email, password });
-      persistSession(
-        {
-          ...response.data.user,
-          fullName: response.data.user.fullName || demoUser.fullName,
-          memberSince: '2023',
-          responseRate: '96%',
-        },
-        response.data.token
-      );
+      persistSession(response.data.user, response.data.token);
       return { ok: true };
     } catch (error) {
-      persistSession(
-        {
-          ...demoUser,
-          email,
-        },
-        'demo-session-token'
-      );
       return {
-        ok: true,
-        offline: true,
-        message: 'Backend unavailable. Signed in with demo workspace data.',
+        ok: false,
+        message: getErrorMessage(error, 'Login failed'),
       };
     }
   };
@@ -91,33 +104,12 @@ export const AuthProvider = ({ children }) => {
         location,
         password,
       });
-      persistSession(
-        {
-          ...response.data.user,
-          fullName: response.data.user.fullName || fullName,
-          memberSince: '2026',
-          responseRate: '100%',
-          isVerified: false,
-        },
-        response.data.token
-      );
+      persistSession(response.data.user, response.data.token);
       return { ok: true };
     } catch (error) {
-      persistSession(
-        {
-          ...demoUser,
-          fullName,
-          email,
-          location,
-          memberSince: '2026',
-          isVerified: false,
-        },
-        'demo-session-token'
-      );
       return {
-        ok: true,
-        offline: true,
-        message: 'Account created in demo mode because the API is not reachable.',
+        ok: false,
+        message: getErrorMessage(error, 'Registration failed'),
       };
     }
   };
@@ -131,7 +123,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateUser = (updates) => {
-    const nextUser = { ...user, ...updates };
+    const nextUser = normalizeUser({ ...user, ...updates });
     setUser(nextUser);
     localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
   };
