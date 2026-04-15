@@ -16,7 +16,7 @@ import { useAuth } from '../context/AuthContext';
 import { useAppData } from '../context/AppDataContext';
 
 function ProfilePage() {
-  const { user } = useAuth();
+  const { user, profileStats, verifications } = useAuth();
   const { myListings, myRentals } = useAppData();
 
   return (
@@ -32,10 +32,12 @@ function ProfilePage() {
                 <Box>
                   <Typography variant="h4">{user?.fullName}</Typography>
                   <Typography color="text.secondary">{user?.email}</Typography>
+                  <Typography color="text.secondary">{user?.phone}</Typography>
                 </Box>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   <Chip icon={<VerifiedRounded />} label={user?.isVerified ? 'Verified account' : 'Verification pending'} />
-                  <Chip label={user?.location} color="primary" />
+                  <Chip label={user?.city || user?.location} color="primary" />
+                  {user?.accountType ? <Chip label={user.accountType} variant="outlined" /> : null}
                 </Stack>
                 <Box>
                   <Rating value={user?.rating || 4.8} precision={0.1} readOnly />
@@ -43,6 +45,9 @@ function ProfilePage() {
                     {user?.totalRatings || 0} ratings • Member since {user?.memberSince}
                   </Typography>
                 </Box>
+                <Typography color="text.secondary" sx={{ lineHeight: 1.8 }}>
+                  {user?.bio || 'Complete your member bio to tell hosts and renters how you use the platform.'}
+                </Typography>
               </Stack>
             </CardContent>
           </Card>
@@ -57,8 +62,9 @@ function ProfilePage() {
                   {[
                     ['Active listings', myListings.length],
                     ['Rental activity', myRentals.length],
+                    ['Saved items', profileStats.savedItems || 0],
                     ['Response rate', user?.responseRate || '95%'],
-                    ['Trust score', 'High'],
+                    ['Completed rentals', user?.completedRentals || 0],
                   ].map(([label, value]) => (
                     <Grid item xs={6} key={label}>
                       <Box sx={{ p: 2.5, borderRadius: 4, bgcolor: 'rgba(148,163,184,0.08)' }}>
@@ -75,11 +81,25 @@ function ProfilePage() {
 
             <Card>
               <CardContent sx={{ p: 3.5 }}>
-                <Typography variant="h5">Profile summary</Typography>
-                <Typography color="text.secondary" sx={{ mt: 2, lineHeight: 1.8 }}>
-                  Rent-It Circle profiles are designed to make peer-to-peer interactions more credible. This page brings
-                  together your account reputation, listing activity and response quality in one place.
-                </Typography>
+                <Typography variant="h5">Trust and verification</Typography>
+                <Stack spacing={1.5} sx={{ mt: 2 }}>
+                  {verifications.length ? (
+                    verifications.map((entry) => (
+                      <Box key={entry.verification_type} sx={{ p: 2, borderRadius: 3, bgcolor: 'rgba(148,163,184,0.08)' }}>
+                        <Typography fontWeight={700} sx={{ textTransform: 'capitalize' }}>
+                          {entry.verification_type.replace(/_/g, ' ')}
+                        </Typography>
+                        <Typography color="text.secondary" sx={{ textTransform: 'capitalize' }}>
+                          {entry.verification_status}
+                        </Typography>
+                      </Box>
+                    ))
+                  ) : (
+                    <Typography color="text.secondary">
+                      Verification records will appear here as the backend processes account checks.
+                    </Typography>
+                  )}
+                </Stack>
               </CardContent>
             </Card>
           </Stack>

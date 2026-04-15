@@ -17,10 +17,14 @@ import VerifiedRounded from '@mui/icons-material/VerifiedRounded';
 import PlaceRounded from '@mui/icons-material/PlaceRounded';
 import TravelExploreRounded from '@mui/icons-material/TravelExploreRounded';
 import { Link } from 'react-router-dom';
-import { cityHighlights, initialItems, testimonials, trustSignals } from '../data/mockData';
+import { cityHighlights, testimonials, trustSignals } from '../data/mockData';
+import { useAppData } from '../context/AppDataContext';
 import { formatGBP } from '../utils/currency';
 
 function HomePage() {
+  const { items } = useAppData();
+  const featuredItems = items.slice(0, 3);
+
   return (
     <Box>
       <Container maxWidth="xl" sx={{ pt: { xs: 6, md: 9 } }}>
@@ -93,41 +97,66 @@ function HomePage() {
 
           <Grid item xs={12} lg={5}>
             <Stack spacing={3} sx={{ height: '100%' }}>
-              <Card sx={{ flex: 1, background: 'linear-gradient(180deg, #ffffff, #effdf8)' }}>
+              <Card
+                sx={{
+                  flex: 1,
+                  borderRadius: '14px',
+                  background: 'linear-gradient(180deg, #ffffff, #effdf8)',
+                }}
+              >
                 <CardContent sx={{ p: 3.5 }}>
                   <Stack spacing={2.5}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                       <Typography variant="h5">Today&apos;s high-intent listings</Typography>
-                      <Chip label="Updated live" color="primary" />
+                      <Chip label="Updated live" color="primary" sx={{ borderRadius: '10px' }} />
                     </Stack>
-                    {initialItems.slice(0, 3).map((item) => (
+                    {featuredItems.map((item) => (
                       <Stack
                         key={item.id}
                         direction="row"
                         spacing={2}
-                        alignItems="center"
-                        sx={{ p: 1.5, borderRadius: 4, bgcolor: 'rgba(255,255,255,0.7)' }}
+                        alignItems="flex-start"
+                        sx={{
+                          p: 1.5,
+                          borderRadius: '10px',
+                          bgcolor: 'rgba(255,255,255,0.7)',
+                          border: '1px solid rgba(148, 163, 184, 0.18)',
+                        }}
                       >
                         <Box
                           component="img"
                           src={item.image}
                           alt={item.title}
-                          sx={{ width: 86, height: 86, borderRadius: 3, objectFit: 'cover' }}
+                          sx={{
+                            width: 86,
+                            height: 86,
+                            minWidth: 86,
+                            flexShrink: 0,
+                            borderRadius: '8px',
+                            objectFit: 'cover',
+                          }}
                         />
-                        <Box sx={{ flexGrow: 1 }}>
-                          <Typography fontWeight={700}>{item.title}</Typography>
-                          <Stack direction="row" spacing={1} mt={0.75} alignItems="center">
+                        <Stack spacing={1} sx={{ flexGrow: 1, minWidth: 0 }}>
+                          <Typography fontWeight={700} sx={{ lineHeight: 1.35 }}>
+                            {item.title}
+                          </Typography>
+                          <Stack direction="row" spacing={1} alignItems="center">
                             <PlaceRounded sx={{ fontSize: 18, color: 'text.secondary' }} />
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" color="text.secondary" noWrap>
                               {item.location}
                             </Typography>
                           </Stack>
-                          <Typography variant="body2" sx={{ mt: 1, color: 'primary.main', fontWeight: 700 }}>
+                          <Typography variant="body2" sx={{ color: 'primary.main', fontWeight: 700 }}>
                             {formatGBP(item.dailyRate)} / day
                           </Typography>
-                        </Box>
+                        </Stack>
                       </Stack>
                     ))}
+                    {!featuredItems.length ? (
+                      <Typography color="text.secondary">
+                        Marketplace listings will appear here once the backend has live item data.
+                      </Typography>
+                    ) : null}
                   </Stack>
                 </CardContent>
               </Card>

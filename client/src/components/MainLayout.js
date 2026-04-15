@@ -126,12 +126,6 @@ function MainLayout() {
 
             <Box sx={{ flexGrow: 1 }} />
 
-            <Chip
-              label="Trusted local marketplace"
-              color="primary"
-              sx={{ display: { xs: 'none', lg: 'inline-flex' }, bgcolor: 'rgba(15,118,110,0.08)' }}
-            />
-
             <Stack direction="row" spacing={1} sx={{ display: { xs: 'none', md: 'flex' } }}>
               {isAuthenticated ? (
                 <>
@@ -143,6 +137,16 @@ function MainLayout() {
                   </Button>
                   <Button component={Link} to="/profile" sx={{ minWidth: 0, px: 1.5 }}>
                     {user?.fullName?.split(' ')[0] || 'Profile'}
+                  </Button>
+                  <Button
+                    color="inherit"
+                    startIcon={<LogoutRounded />}
+                    onClick={() => {
+                      logout();
+                      navigate('/');
+                    }}
+                  >
+                    Logout
                   </Button>
                 </>
               ) : (

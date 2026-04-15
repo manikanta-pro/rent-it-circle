@@ -32,8 +32,9 @@ function ItemDetailsPage() {
     startDate: '2026-04-04',
     endDate: '2026-04-06',
     message: 'Hi, I would like to reserve this item for a short project.',
+    pickupNotes: '',
   });
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState({ message: '', severity: 'info' });
 
   const item = useMemo(() => items.find((entry) => entry.id === itemId), [itemId, items]);
 
@@ -46,14 +47,24 @@ function ItemDetailsPage() {
   const days = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
   const total = days * item.dailyRate;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!isAuthenticated) {
-      setNotice('Sign in to submit a rental request.');
+      setNotice({ message: 'Sign in to submit a rental request.', severity: 'info' });
       return;
     }
 
-    requestRental({ itemId: item.id, ...form });
-    setNotice('Rental request submitted. You can track it from your dashboard.');
+    try {
+      await requestRental({ itemId: item.id, ...form });
+      setNotice({
+        message: 'Rental request submitted. You can track it from your dashboard.',
+        severity: 'success',
+      });
+    } catch (error) {
+      setNotice({
+        message: error?.response?.data?.error || 'Unable to submit rental request right now.',
+        severity: 'error',
+      });
+    }
   };
 
   return (
@@ -99,7 +110,7 @@ function ItemDetailsPage() {
                     {[
                       ['Daily rate', formatGBP(item.dailyRate)],
                       ['Security deposit', formatGBP(item.depositAmount)],
-                      ['Location', item.location],
+                      ['Location', item.neighborhood ? `${item.neighborhood}, ${item.location}` : item.location],
                       ['Views', `${item.viewsCount}+ interest signals`],
                     ].map(([label, value]) => (
                       <Grid item xs={12} sm={6} key={label}>
@@ -117,7 +128,18 @@ function ItemDetailsPage() {
                     {item.tags.map((tag) => (
                       <Chip key={tag} label={tag} />
                     ))}
+                    {item.localOnly ? <Chip label="Local renters only" color="secondary" /> : null}
+                    <Chip label={`${item.serviceRadiusKm} km service area`} variant="outlined" />
                   </Stack>
+
+                  {item.damagePolicy ? (
+                    <Box sx={{ p: 2.5, borderRadius: 4, bgcolor: 'rgba(148,163,184,0.08)' }}>
+                      <Typography fontWeight={800}>Damage and deposit policy</Typography>
+                      <Typography color="text.secondary" sx={{ mt: 1 }}>
+                        {item.damagePolicy}
+                      </Typography>
+                    </Box>
+                  ) : null}
                 </Stack>
               </CardContent>
             </Card>
@@ -130,7 +152,7 @@ function ItemDetailsPage() {
               <CardContent sx={{ p: 3 }}>
                 <Stack spacing={2.5}>
                   <Typography variant="h5">Request this item</Typography>
-                  {notice ? <Alert severity="info">{notice}</Alert> : null}
+                  {notice.message ? <Alert severity={notice.severity}>{notice.message}</Alert> : null}
                   <TextField
                     type="date"
                     label="Start date"
@@ -151,6 +173,14 @@ function ItemDetailsPage() {
                     label="Message to host"
                     value={form.message}
                     onChange={(event) => setForm((prev) => ({ ...prev, message: event.target.value }))}
+                  />
+                  <TextField
+                    multiline
+                    minRows={3}
+                    label="Pickup notes"
+                    placeholder="Preferred pickup time, parking notes, or building access details"
+                    value={form.pickupNotes}
+                    onChange={(event) => setForm((prev) => ({ ...prev, pickupNotes: event.target.value }))}
                   />
                   <Divider />
                   <Stack spacing={1}>

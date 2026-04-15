@@ -38,9 +38,9 @@ const PrivateRoute = ({ children }) => {
 function App() {
   return (
     <Routes>
-      <Route path="/auth" element={<AuthPage />} />
       <Route path="/" element={<MainLayout />}>
         <Route index element={<HomePage />} />
+        <Route path="auth" element={<AuthPage />} />
         <Route path="marketplace" element={<MarketplacePage />} />
         <Route path="marketplace/:itemId" element={<ItemDetailsPage />} />
         <Route

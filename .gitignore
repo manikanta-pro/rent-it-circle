@@ -7,4 +7,6 @@ client/node_modules/
 client/build/
 
 server/.env
+server/uploads/*
+!server/uploads/.gitkeep
 *.log

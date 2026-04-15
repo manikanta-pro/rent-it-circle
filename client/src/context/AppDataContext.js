@@ -1,95 +1,220 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
-import { initialItems, initialRentals } from '../data/mockData';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import api from '../services/api';
 import { useAuth } from './AuthContext';
 
 const AppDataContext = createContext(null);
-const ITEMS_KEY = 'rentitcircle-items';
-const RENTALS_KEY = 'rentitcircle-rentals';
-const FAVORITES_KEY = 'rentitcircle-favorites';
 
-const readStorage = (key, fallback) => {
-  const value = localStorage.getItem(key);
-  return value ? JSON.parse(value) : fallback;
+const mapItem = (item) => {
+  const images = Array.isArray(item.images) ? item.images : [];
+  const fallbackImage = images[0] || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80';
+
+  return {
+    id: item.id,
+    title: item.title,
+    category: item.category,
+    description: item.description,
+    brand: item.brand || '',
+    condition: item.condition,
+    dailyRate: Number(item.daily_rate || 0),
+    depositAmount: Number(item.deposit_amount || 0),
+    damagePolicy: item.damage_policy || '',
+    location: item.location,
+    neighborhood: item.neighborhood || '',
+    postalCode: item.postal_code || '',
+    latitude: item.latitude !== undefined && item.latitude !== null ? Number(item.latitude) : null,
+    longitude: item.longitude !== undefined && item.longitude !== null ? Number(item.longitude) : null,
+    image: fallbackImage,
+    gallery: images.length ? images : [fallbackImage],
+    tags: Array.isArray(item.tags) && item.tags.length ? item.tags : ['Trusted local pickup'],
+    ownerId: item.owner_id,
+    ownerName: item.owner_name,
+    ownerRating: Number(item.owner_rating || 0),
+    ownerReviewCount: Number(item.owner_review_count || 0),
+    ownerVerified: Boolean(item.owner_verified),
+    ownerLocation: [item.owner_neighborhood, item.owner_city].filter(Boolean).join(', ') || item.location,
+    leadTime: item.pickup_window || 'Pickup arranged with host',
+    handoffType: item.handoff_type || 'pickup',
+    localOnly: Boolean(item.local_only),
+    serviceRadiusKm: Number(item.service_radius_km || 10),
+    minRentalDays: Number(item.min_rental_days || 1),
+    maxRentalDays: Number(item.max_rental_days || 14),
+    rentalTerms: item.rental_terms || '',
+    availabilityStatus: item.availability_status,
+    viewsCount: Number(item.views_count || 0),
+    createdAt: item.created_at,
+    distanceKm: item.distance_km !== undefined && item.distance_km !== null ? Number(item.distance_km) : null,
+    isLocalMatch: Boolean(item.is_local_match),
+  };
 };
 
+const mapRental = (rental, role) => ({
+  id: rental.id,
+  itemId: rental.item_id,
+  itemTitle: rental.item_title,
+  ownerId: rental.owner_id,
+  renterId: rental.renter_id,
+  ownerName: rental.owner_name,
+  renterName: rental.renter_name,
+  ownerEmail: rental.owner_email,
+  renterEmail: rental.renter_email,
+  location: rental.location,
+  startDate: rental.start_date,
+  endDate: rental.end_date,
+  totalAmount: Number(rental.total_amount || 0),
+  depositAmount: Number(rental.deposit_amount || 0),
+  status: rental.status,
+  createdAt: rental.created_at,
+  completedAt: rental.completed_at,
+  message: rental.renter_message || '',
+  pickupNotes: rental.pickup_notes || '',
+  depositStatus: rental.deposit_status || 'held',
+  image: Array.isArray(rental.images) && rental.images.length ? rental.images[0] : '',
+  role,
+});
+
 export const AppDataProvider = ({ children }) => {
-  const { user } = useAuth();
-  const [items, setItems] = useState(() => readStorage(ITEMS_KEY, initialItems));
-  const [rentals, setRentals] = useState(() => readStorage(RENTALS_KEY, initialRentals));
-  const [favorites, setFavorites] = useState(() => readStorage(FAVORITES_KEY, []));
+  const { user, isAuthenticated } = useAuth();
+  const [items, setItems] = useState([]);
+  const [rentals, setRentals] = useState([]);
+  const [favorites, setFavorites] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState('');
 
-  const persist = (key, value, setter) => {
-    setter(value);
-    localStorage.setItem(key, JSON.stringify(value));
+  const loadMarketplace = async (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '' || value === false) {
+        return;
+      }
+      params.set(key, String(value));
+    });
+
+    const response = await api.get(`/items${params.toString() ? `?${params.toString()}` : ''}`);
+    setItems(response.data.map(mapItem));
   };
 
-  const toggleFavorite = (itemId) => {
-    const nextFavorites = favorites.includes(itemId)
-      ? favorites.filter((id) => id !== itemId)
-      : [...favorites, itemId];
+  const loadPrivateData = async () => {
+    if (!isAuthenticated) {
+      setRentals([]);
+      setFavorites([]);
+      return;
+    }
 
-    persist(FAVORITES_KEY, nextFavorites, setFavorites);
+    const [rentalsResponse, favoritesResponse] = await Promise.all([
+      api.get('/rentals/my-rentals'),
+      api.get('/users/favorites'),
+    ]);
+
+    const nextRentals = [
+      ...rentalsResponse.data.asOwner.map((rental) => mapRental(rental, 'owner')),
+      ...rentalsResponse.data.asRenter.map((rental) => mapRental(rental, 'renter')),
+    ].sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt));
+
+    setRentals(nextRentals);
+    setFavorites(favoritesResponse.data.map((item) => item.id));
   };
 
-  const createItem = (payload) => {
-    const nextItem = {
-      id: `item-${Date.now()}`,
-      ownerId: user?.id || 'guest-owner',
-      ownerName: user?.fullName || 'Rent-It Circle Host',
-      ownerRating: user?.rating || 4.8,
-      ownerReviewCount: user?.totalRatings || 24,
-      ownerVerified: user?.isVerified || false,
-      ownerLocation: user?.location || payload.location,
-      createdAt: new Date().toISOString(),
-      viewsCount: 0,
-      availabilityStatus: 'available',
-      ...payload,
+  useEffect(() => {
+    let ignore = false;
+
+    const bootstrap = async () => {
+      setLoading(true);
+
+      try {
+        const response = await api.get('/items');
+        if (!ignore) {
+          setItems(response.data.map(mapItem));
+        }
+
+        if (isAuthenticated) {
+          const [rentalsResponse, favoritesResponse] = await Promise.all([
+            api.get('/rentals/my-rentals'),
+            api.get('/users/favorites'),
+          ]);
+
+          if (!ignore) {
+            const nextRentals = [
+              ...rentalsResponse.data.asOwner.map((rental) => mapRental(rental, 'owner')),
+              ...rentalsResponse.data.asRenter.map((rental) => mapRental(rental, 'renter')),
+            ].sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt));
+
+            setRentals(nextRentals);
+            setFavorites(favoritesResponse.data.map((item) => item.id));
+          }
+        } else if (!ignore) {
+          setRentals([]);
+          setFavorites([]);
+        }
+
+        if (!ignore) {
+          setNotice('');
+        }
+      } catch (error) {
+        if (!ignore) {
+          setNotice(error?.response?.data?.error || 'Unable to load live marketplace data right now.');
+          setItems([]);
+          setRentals([]);
+          setFavorites([]);
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
     };
 
-    const nextItems = [nextItem, ...items];
-    persist(ITEMS_KEY, nextItems, setItems);
+    bootstrap();
+
+    return () => {
+      ignore = true;
+    };
+  }, [isAuthenticated, user?.id]);
+
+  const toggleFavorite = async (itemId) => {
+    const isSaved = favorites.includes(itemId);
+
+    if (isSaved) {
+      await api.delete(`/users/favorites/${itemId}`);
+      setFavorites((prev) => prev.filter((id) => id !== itemId));
+      return;
+    }
+
+    await api.post(`/users/favorites/${itemId}`);
+    setFavorites((prev) => [...prev, itemId]);
+  };
+
+  const createItem = async (payload) => {
+    const response = await api.post('/items', payload);
+    const nextItem = mapItem(response.data);
+    setItems((prev) => [nextItem, ...prev]);
     return nextItem;
   };
 
-  const requestRental = ({ itemId, startDate, endDate, message }) => {
-    const item = items.find((entry) => entry.id === itemId);
-
-    if (!item) {
-      return null;
-    }
-
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const dayCount = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
-
-    const nextRental = {
-      id: `rental-${Date.now()}`,
+  const requestRental = async ({ itemId, startDate, endDate, message, pickupNotes }) => {
+    const response = await api.post('/rentals', {
       itemId,
-      itemTitle: item.title,
-      ownerId: item.ownerId,
-      ownerName: item.ownerName,
-      renterId: user?.id || 'guest-renter',
-      renterName: user?.fullName || 'Guest User',
       startDate,
       endDate,
-      days: dayCount,
-      totalAmount: dayCount * item.dailyRate,
-      depositAmount: item.depositAmount,
-      status: 'pending',
       message,
-      createdAt: new Date().toISOString(),
-    };
+      pickupNotes,
+    });
 
-    const nextRentals = [nextRental, ...rentals];
-    persist(RENTALS_KEY, nextRentals, setRentals);
+    const nextRental = mapRental(response.data, 'renter');
+    setRentals((prev) => [nextRental, ...prev]);
+    await loadMarketplace();
     return nextRental;
   };
 
-  const updateRentalStatus = (rentalId, status) => {
-    const nextRentals = rentals.map((rental) =>
-      rental.id === rentalId ? { ...rental, status } : rental
+  const updateRentalStatus = async (rentalId, status) => {
+    const response = await api.patch(`/rentals/${rentalId}/status`, { status });
+    const updated = mapRental(
+      response.data,
+      response.data.owner_id === user?.id ? 'owner' : 'renter'
     );
-    persist(RENTALS_KEY, nextRentals, setRentals);
+
+    setRentals((prev) => prev.map((rental) => (rental.id === rentalId ? { ...rental, ...updated } : rental)));
+    await loadMarketplace();
+    return updated;
   };
 
   const marketplaceItems = useMemo(
@@ -103,25 +228,20 @@ export const AppDataProvider = ({ children }) => {
   );
 
   const myRentals = useMemo(
-    () =>
-      rentals.filter(
-        (rental) => rental.renterId === user?.id || rental.ownerId === user?.id
-      ),
+    () => rentals.filter((rental) => rental.renterId === user?.id || rental.ownerId === user?.id),
     [rentals, user]
   );
 
   const platformStats = useMemo(() => {
-    const activeRentals = rentals.filter((rental) =>
-      ['pending', 'approved', 'active'].includes(rental.status)
-    ).length;
+    const activeRentals = rentals.filter((rental) => ['pending', 'active'].includes(rental.status)).length;
 
     return {
       items: marketplaceItems.length,
       activeRentals,
       savings: '42%',
-      responseTime: '< 12 mins',
+      responseTime: user?.responseTimeMinutes ? `${user.responseTimeMinutes} mins` : '< 2 hrs',
     };
-  }, [marketplaceItems.length, rentals]);
+  }, [marketplaceItems.length, rentals, user?.responseTimeMinutes]);
 
   const value = useMemo(
     () => ({
@@ -131,12 +251,19 @@ export const AppDataProvider = ({ children }) => {
       myListings,
       myRentals,
       platformStats,
+      loading,
+      notice,
+      refreshData: async () => {
+        await loadMarketplace();
+        await loadPrivateData();
+      },
+      fetchMarketplaceItems: loadMarketplace,
       toggleFavorite,
       createItem,
       requestRental,
       updateRentalStatus,
     }),
-    [favorites, marketplaceItems, myListings, myRentals, platformStats, rentals]
+    [favorites, loading, marketplaceItems, myListings, myRentals, notice, platformStats, rentals]
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

@@ -14,10 +14,12 @@ import {
 import AddRounded from '@mui/icons-material/AddRounded';
 import { Link } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
+import { useAuth } from '../context/AuthContext';
 import { formatGBP } from '../utils/currency';
 
 function DashboardPage() {
   const { myListings, myRentals, platformStats, updateRentalStatus } = useAppData();
+  const { user, profileStats } = useAuth();
 
   return (
     <Container maxWidth="xl" sx={{ py: { xs: 5, md: 7 } }}>
@@ -55,8 +57,8 @@ function DashboardPage() {
         <Grid container spacing={3}>
           {[
             ['Your listings', myListings.length],
-            ['Rental activity', myRentals.length],
-            ['Platform savings trend', platformStats.savings],
+            ['Open requests', profileStats.openRequests || 0],
+            ['Completed rentals', user?.completedRentals || 0],
             ['Median response', platformStats.responseTime],
           ].map(([label, value]) => (
             <Grid item xs={12} sm={6} lg={3} key={label}>

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -7,11 +8,13 @@ import {
   Chip,
   Container,
   FormControl,
+  FormControlLabel,
   Grid,
   IconButton,
   InputAdornment,
   MenuItem,
   Stack,
+  Switch,
   TextField,
   Typography,
 } from '@mui/material';
@@ -21,19 +24,23 @@ import FavoriteBorderRounded from '@mui/icons-material/FavoriteBorderRounded';
 import PlaceRounded from '@mui/icons-material/PlaceRounded';
 import StarRounded from '@mui/icons-material/StarRounded';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { categories, cityHighlights } from '../data/mockData';
 import { useAppData } from '../context/AppDataContext';
+import { useAuth } from '../context/AuthContext';
 import { formatGBP } from '../utils/currency';
 
 function MarketplacePage() {
-  const { items, favorites, toggleFavorite } = useAppData();
+  const { items, favorites, toggleFavorite, loading, notice, fetchMarketplaceItems } = useAppData();
+  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const locationParam = searchParams.get('location');
   const [filters, setFilters] = useState({
     search: '',
     category: 'All',
     location: locationParam && cityHighlights.includes(locationParam) ? locationParam : 'All cities',
+    nearbyOnly: false,
   });
 
   useEffect(() => {
@@ -43,20 +50,42 @@ function MarketplacePage() {
     }));
   }, [locationParam]);
 
-  const filteredItems = useMemo(
-    () =>
-      items.filter((item) => {
-        const matchesSearch =
-          !filters.search ||
-          `${item.title} ${item.description}`.toLowerCase().includes(filters.search.toLowerCase());
-        const matchesCategory =
-          filters.category === 'All' || item.category === filters.category;
-        const matchesLocation =
-          filters.location === 'All cities' || item.location === filters.location;
-        return matchesSearch && matchesCategory && matchesLocation;
-      }),
-    [filters, items]
-  );
+  useEffect(() => {
+    fetchMarketplaceItems({
+      search: filters.search || undefined,
+      category: filters.category === 'All' ? undefined : filters.category,
+      city: filters.location === 'All cities' ? undefined : filters.location,
+      nearby: filters.nearbyOnly ? true : undefined,
+      neighborhood: filters.nearbyOnly ? user?.neighborhood : undefined,
+      postalCode: filters.nearbyOnly ? user?.postalCode : undefined,
+      latitude: filters.nearbyOnly ? user?.latitude : undefined,
+      longitude: filters.nearbyOnly ? user?.longitude : undefined,
+      radiusKm: filters.nearbyOnly ? user?.searchRadiusKm : undefined,
+      localOnly: filters.nearbyOnly ? true : undefined,
+    });
+  }, [
+    fetchMarketplaceItems,
+    filters.category,
+    filters.location,
+    filters.nearbyOnly,
+    filters.search,
+    user?.latitude,
+    user?.longitude,
+    user?.neighborhood,
+    user?.postalCode,
+    user?.searchRadiusKm,
+  ]);
+
+  const filteredItems = useMemo(() => items, [items]);
+
+  const handleFavoriteToggle = async (itemId) => {
+    if (!isAuthenticated) {
+      navigate('/auth');
+      return;
+    }
+
+    await toggleFavorite(itemId);
+  };
 
   return (
     <Container maxWidth="xl" sx={{ py: { xs: 5, md: 7 } }}>
@@ -122,12 +151,46 @@ function MarketplacePage() {
                     ))}
                   </TextField>
                 </Grid>
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={filters.nearbyOnly}
+                        onChange={(event) => setFilters((prev) => ({ ...prev, nearbyOnly: event.target.checked }))}
+                      />
+                    }
+                    label={
+                      user?.city
+                        ? `Show only nearby listings around ${user.neighborhood || user.city}`
+                        : 'Show only nearby listings'
+                    }
+                  />
+                </Grid>
               </Grid>
             </Stack>
           </CardContent>
         </Card>
 
         <Grid container spacing={3}>
+          {notice ? (
+            <Grid item xs={12}>
+              <Alert severity="warning">{notice}</Alert>
+            </Grid>
+          ) : null}
+
+          {!loading && filteredItems.length === 0 ? (
+            <Grid item xs={12}>
+              <Card>
+                <CardContent sx={{ p: 4 }}>
+                  <Typography variant="h5">No listings match these filters</Typography>
+                  <Typography color="text.secondary" sx={{ mt: 1 }}>
+                    Try a wider search, another city, or publish the first listing in this category.
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ) : null}
+
           {filteredItems.map((item) => (
             <Grid item xs={12} sm={6} lg={4} key={item.id}>
               <Card sx={{ overflow: 'hidden', height: '100%' }}>
@@ -139,7 +202,7 @@ function MarketplacePage() {
                     sx={{ width: '100%', height: 260, objectFit: 'cover' }}
                   />
                   <IconButton
-                    onClick={() => toggleFavorite(item.id)}
+                    onClick={() => handleFavoriteToggle(item.id)}
                     sx={{
                       position: 'absolute',
                       top: 16,
@@ -168,7 +231,9 @@ function MarketplacePage() {
                     <Stack direction="row" spacing={2} color="text.secondary">
                       <Stack direction="row" spacing={0.5} alignItems="center">
                         <PlaceRounded sx={{ fontSize: 18 }} />
-                        <Typography variant="body2">{item.location}</Typography>
+                        <Typography variant="body2">
+                          {item.neighborhood ? `${item.neighborhood}, ${item.location}` : item.location}
+                        </Typography>
                       </Stack>
                       <Stack direction="row" spacing={0.5} alignItems="center">
                         <StarRounded sx={{ fontSize: 18, color: '#f59e0b' }} />
@@ -186,6 +251,11 @@ function MarketplacePage() {
                         <Typography variant="body2" color="text.secondary">
                           deposit {formatGBP(item.depositAmount)}
                         </Typography>
+                        {item.distanceKm !== null ? (
+                          <Typography variant="body2" color="text.secondary">
+                            {item.distanceKm} km away
+                          </Typography>
+                        ) : null}
                       </Box>
                       <Button
                         component={Link}
